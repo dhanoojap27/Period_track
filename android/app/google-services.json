@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "85416337208",
+    "project_id": "periodstracker-c1218",
+    "storage_bucket": "periodstracker-c1218.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:85416337208:android:53dacbe3238bb4a90f6bcd",
+        "android_client_info": {
+          "package_name": "com.example.mensuration_tracke"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTfsocL6_yemZkNSNnJb5XlkuNlJ-Vzrc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:85416337208:android:f88a028a447138fd0f6bcd",
+        "android_client_info": {
+          "package_name": "com.example.mensuration_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTfsocL6_yemZkNSNnJb5XlkuNlJ-Vzrc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
