@@ -1,5 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/predictions.dart';
 import '../models/cycle_entry.dart';
 import '../models/user_settings.dart';
@@ -23,14 +24,14 @@ class PredictionNotifier extends StateNotifier<AsyncValue<Predictions?>> {
 
   Future<void> _loadPredictions() async {
     if (_user == null) {
-      state = const AsyncValue.data(null);
+      if (mounted) state = const AsyncValue.data(null);
       return;
     }
     try {
-      final predictions = await _syncService.loadPredictions(_user.uid);
-      state = AsyncValue.data(predictions);
+      final predictions = await _syncService.loadPredictions(_user.id);
+      if (mounted) state = AsyncValue.data(predictions);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
     }
   }
 
@@ -43,17 +44,18 @@ class PredictionNotifier extends StateNotifier<AsyncValue<Predictions?>> {
     try {
       final predictions = PredictionService.calculatePredictions(cycles, settings);
       
-      await _syncService.syncPredictions(predictions, _user.uid);
-      state = AsyncValue.data(predictions);
+      await _syncService.syncPredictions(predictions, _user.id);
+      if (mounted) state = AsyncValue.data(predictions);
       
       // Schedule Notifications
       await _scheduleReminders(predictions);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> _scheduleReminders(Predictions predictions) async {
+    if (kIsWeb) return; // Skip notifications on web
     await NotificationService.cancelAllNotifications();
 
     // Period Reminder (2 days before)
@@ -90,12 +92,12 @@ class PredictionNotifier extends StateNotifier<AsyncValue<Predictions?>> {
 
   Future<void> savePredictions(Predictions predictions) async {
     if (_user == null) return;
-    state = const AsyncValue.loading();
+    if (mounted) state = const AsyncValue.loading();
     try {
-      await _syncService.syncPredictions(predictions, _user.uid);
-      state = AsyncValue.data(predictions);
+      await _syncService.syncPredictions(predictions, _user.id);
+      if (mounted) state = AsyncValue.data(predictions);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
     }
   }
   

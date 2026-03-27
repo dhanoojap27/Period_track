@@ -21,9 +21,9 @@ class PredictionsAdapter extends TypeAdapter<Predictions> {
       ovulationDay: fields[1] as DateTime,
       fertileStart: fields[2] as DateTime,
       fertileEnd: fields[3] as DateTime,
-      confidenceDays: fields[4] as int? ?? 2,
-      predictedCycleLength: fields[5] as double? ?? 28.0,
-      trend: fields[6] as String? ?? 'stable',
+      confidenceDays: fields[4] as int,
+      predictedCycleLength: fields[5] as double,
+      trend: fields[6] as String,
     );
   }
 

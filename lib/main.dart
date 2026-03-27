@@ -1,8 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:hive/hive.dart';
 import 'services/hive_service.dart';
 import 'services/notification_service.dart';
@@ -14,6 +12,8 @@ import 'screens/calendar_screen.dart';
 import 'screens/insights_screen.dart';
 import 'screens/log_period_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/chat_screen.dart';
+import 'supabase_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,20 +21,18 @@ void main() async {
   // Initialize Hive
   await HiveService.init();
   
-  // Initialize Firebase (will fail without config files, but won't crash the app)
+  // Initialize Supabase
   try {
-    await Firebase.initializeApp();
+    await SupabaseConfig.initialize();
     
-    // Setup Crashlytics
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    // Initialize Notifications (skip on web)
+    if (!kIsWeb) {
+      await NotificationService.init();
+    }
     
-    // Initialize Analytics
-    FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
-    
-    // Initialize Notifications (requires Firebase to be initialized first)
-    await NotificationService.init();
+    debugPrint('✅ App initialized successfully with Supabase');
   } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
+    debugPrint('❌ Supabase initialization failed: $e');
     debugPrint('App will run in offline-only mode');
   }
 
@@ -98,6 +96,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     CalendarScreen(),
     InsightsScreen(),
     LogPeriodScreen(),
+    ChatScreen(),
     ProfileScreen(),
   ];
 
@@ -134,6 +133,11 @@ class _MainScaffoldState extends State<MainScaffold> {
             icon: Icon(Icons.add_circle_outline),
             selectedIcon: Icon(Icons.add_circle),
             label: 'Log',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_outlined),
+            selectedIcon: Icon(Icons.chat),
+            label: 'AI Chat',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

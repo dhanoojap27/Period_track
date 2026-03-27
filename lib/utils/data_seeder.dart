@@ -59,4 +59,9 @@ class DataSeeder {
     
     debugPrint('Seeding complete!');
   }
+
+  static Future<void> clearAllData() async {
+    await HiveService.clearAll();
+    debugPrint('All data cleared!');
+  }
 }

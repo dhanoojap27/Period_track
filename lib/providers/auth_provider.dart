@@ -1,32 +1,97 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../supabase_config.dart';
 
 final authProvider = StateNotifierProvider<AuthNotifier, User?>((ref) {
   return AuthNotifier();
 });
 
 class AuthNotifier extends StateNotifier<User?> {
-  AuthNotifier() : super(FirebaseAuth.instance.currentUser) {
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      state = user;
+  AuthNotifier() : super(SupabaseConfig.auth.currentUser) {
+    SupabaseConfig.auth.onAuthStateChange.listen((data) {
+      state = data.session?.user;
     });
   }
 
-  Future<void> signIn(String email, String password) async {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+  /// Clean and validate email address
+  String _cleanEmail(String email) {
+    // Remove leading/trailing whitespace, convert to lowercase
+    String cleaned = email.trim().toLowerCase();
+    // Remove any extra spaces within the email
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), '');
+    return cleaned;
   }
 
-  Future<void> signUp(String email, String password) async {
-    await FirebaseAuth.instance.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+  /// Validate email format
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
+  }
+
+  Future<void> signIn(String email, String password) async {
+    final cleanedEmail = _cleanEmail(email);
+    
+    debugPrint('Sign In Attempt:');
+    debugPrint('   Email: $cleanedEmail');
+    debugPrint('   Email valid: ${_isValidEmail(cleanedEmail)}');
+    
+    if (!_isValidEmail(cleanedEmail)) {
+      throw Exception('Invalid email format');
+    }
+    
+    try {
+      final response = await SupabaseConfig.auth.signInWithPassword(
+        email: cleanedEmail,
+        password: password,
+      );
+      debugPrint('Sign in successful: ${response.user?.email}');
+    } catch (e) {
+      debugPrint('Sign in failed: $e');
+      rethrow;
+    }
+  }
+
+  Future<AuthResponse> signUp(String email, String password) async {
+    final cleanedEmail = _cleanEmail(email);
+    
+    debugPrint('Sign Up Attempt:');
+    debugPrint('   Original email: "$email"');
+    debugPrint('   Cleaned email: "$cleanedEmail"');
+    debugPrint('   Email valid: ${_isValidEmail(cleanedEmail)}');
+    debugPrint('   Password length: ${password.length}');
+    
+    if (!_isValidEmail(cleanedEmail)) {
+      throw Exception('Invalid email format');
+    }
+    
+    if (password.length < 6) {
+      throw Exception('Password must be at least 6 characters');
+    }
+    
+    try {
+      debugPrint('Sending sign up request to Supabase...');
+      final response = await SupabaseConfig.auth.signUp(
+        email: cleanedEmail,
+        password: password,
+      );
+      
+      debugPrint('Sign up response received:');
+      debugPrint('   User ID: ${response.user?.id}');
+      debugPrint('   Email: ${response.user?.email}');
+      debugPrint('   Session: ${response.session != null ? "Active" : "Null (email confirmation may be required)"}');
+      
+      return response;
+    } catch (e) {
+      debugPrint('Sign up failed: $e');
+      rethrow;
+    }
   }
 
   Future<void> signOut() async {
-    await FirebaseAuth.instance.signOut();
+    await SupabaseConfig.auth.signOut();
+    debugPrint('User signed out');
   }
+
+  String? get currentUserId => state?.id;
 }

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/cycle_entry.dart';
 import '../services/sync_service.dart';
 import 'auth_provider.dart';
@@ -19,48 +19,48 @@ class CycleListNotifier extends StateNotifier<AsyncValue<List<CycleEntry>>> {
 
   Future<void> _loadCycles() async {
     if (_user == null) {
-      state = const AsyncValue.data([]);
+      if (mounted) state = const AsyncValue.data([]);
       return;
     }
     try {
-      final cycles = await _syncService.loadCycles(_user.uid);
-      state = AsyncValue.data(cycles);
+      final cycles = await _syncService.loadCycles(_user.id);
+      if (mounted) state = AsyncValue.data(cycles);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> addCycle(CycleEntry cycle) async {
     if (_user == null) return;
     try {
-      await _syncService.syncCycleEntry(cycle, _user.uid);
+      await _syncService.syncCycleEntry(cycle, _user.id);
       
       // Reload to ensure consistency
-      await _loadCycles();
+      if (mounted) await _loadCycles();
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> updateCycle(CycleEntry cycle) async {
     if (_user == null) return;
     try {
-      await _syncService.syncCycleEntry(cycle, _user.uid);
+      await _syncService.syncCycleEntry(cycle, _user.id);
       
-      await _loadCycles();
+      if (mounted) await _loadCycles();
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> deleteCycle(DateTime startDate) async {
     if (_user == null) return;
     try {
-      await _syncService.deleteCycleEntry(startDate, _user.uid);
+      await _syncService.deleteCycleEntry(startDate, _user.id);
       
-      await _loadCycles();
+      if (mounted) await _loadCycles();
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
     }
   }
 }

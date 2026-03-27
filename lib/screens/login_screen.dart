@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
+import '../providers/questionnaire_provider.dart';
+import 'questionnaire_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -30,22 +32,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       if (_isSignUp) {
-        await ref.read(authProvider.notifier).signUp(
+        final response = await ref.read(authProvider.notifier).signUp(
           _emailController.text.trim(),
           _passwordController.text,
         );
+        
+        if (mounted) {
+          // Check if user needs email confirmation
+          if (response.user != null && response.session == null) {
+            // Email confirmation required
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please check your email to confirm your account, then sign in.'),
+                backgroundColor: Colors.blue,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            setState(() {
+              _isSignUp = false;
+              _isLoading = false;
+            });
+          } else if (response.session != null) {
+            // User is immediately signed in (auto-confirm enabled)
+            ref.read(questionnaireProvider.notifier).reset();
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const QuestionnaireScreen()),
+            );
+          }
+        }
       } else {
         await ref.read(authProvider.notifier).signIn(
           _emailController.text.trim(),
           _passwordController.text,
         );
+        // Sign-in goes directly to home - no questionnaire
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = e.toString();
+        
+        // Parse Supabase error messages to be more user-friendly
+        if (errorMessage.contains('Invalid email')) {
+          errorMessage = 'Please enter a valid email address';
+        } else if (errorMessage.contains('already registered')) {
+          errorMessage = 'This email is already registered. Please sign in instead.';
+        } else if (errorMessage.contains('Signups not allowed')) {
+          errorMessage = 'Sign-ups are currently disabled. Please contact support.';
+        } else if (errorMessage.contains('invalid_credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -53,6 +94,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -136,8 +179,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email';
                         }
-                        if (!value.contains('@')) {
-                          return 'Please enter a valid email';
+                        // Better email validation
+                        final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                        if (!emailRegex.hasMatch(value)) {
+                          return 'Please enter a valid email address';
                         }
                         return null;
                       },

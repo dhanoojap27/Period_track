@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lottie/lottie.dart';
 import '../models/predictions.dart';
 import '../models/user_settings.dart';
 import '../providers/prediction_provider.dart';
 import '../providers/user_settings_provider.dart';
 import '../providers/cycle_provider.dart';
 import 'log_period_screen.dart';
+import 'chat_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -227,17 +227,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       title = 'Period Today';
       subtitle = 'Make sure you are prepared!';
       color = const Color(0xFFFF80AB);
-      animationAsset = 'assets/animations/drop.json';
+      animationAsset = 'animations/drop.json';
     } else if (isLate) {
       title = 'Period Late';
       subtitle = '${days.abs()} days late';
       color = const Color(0xFFFF5252);
-      animationAsset = 'assets/animations/alert.json';
+      animationAsset = 'animations/alert.json';
     } else {
       title = '$days Days';
       subtitle = 'Until next period';
       color = const Color(0xFFFF4081);
-      animationAsset = 'assets/animations/flower.json';
+      animationAsset = 'animations/flower.json';
     }
 
     // Get trend icon and text
@@ -270,14 +270,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            // Lottie Animation
+            // Icon instead of Lottie (to avoid LateInitializationError)
             SizedBox(
               height: 120,
-              child: Lottie.asset(
-                animationAsset,
-                errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.water_drop, size: 80, color: color);
-                },
+              child: Icon(
+                isToday ? Icons.water_drop : (isLate ? Icons.warning : Icons.calendar_today),
+                size: 80,
+                color: color,
               ),
             ),
             const SizedBox(height: 16),
@@ -436,34 +435,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildActionButton(
-            context,
-            'Log Period',
-            Icons.water_drop,
-            const Color(0xFFFF4081),
-            () {
-              Navigator.push(
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionButton(
                 context,
-                MaterialPageRoute(builder: (context) => const LogPeriodScreen()),
-              );
-            },
-          ),
+                'Log Period',
+                Icons.water_drop,
+                const Color(0xFFFF4081),
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LogPeriodScreen()),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildActionButton(
+                context,
+                'Add Symptoms',
+                Icons.healing,
+                const Color(0xFF7C4DFF),
+                () {
+                  // Navigate to symptoms screen (reusing log screen for now)
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LogPeriodScreen()),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
           child: _buildActionButton(
             context,
-            'Add Symptoms',
-            Icons.healing,
-            const Color(0xFF7C4DFF),
+            'Ask AI Assistant',
+            Icons.smart_toy,
+            const Color(0xFF00BCD4),
             () {
-              // Navigate to symptoms screen (reusing log screen for now)
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const LogPeriodScreen()),
+                MaterialPageRoute(builder: (context) => const ChatScreen()),
               );
             },
           ),

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_settings.dart';
 import '../services/sync_service.dart';
 import 'auth_provider.dart';
@@ -20,23 +20,23 @@ class UserSettingsNotifier extends StateNotifier<AsyncValue<UserSettings?>> {
   Future<void> _loadSettings() async {
     try {
       // Use authenticated user ID if available, otherwise use demo_user for testing
-      final userId = _user?.uid ?? 'demo_user';
+      final userId = _user?.id ?? 'demo_user';
       final settings = await _syncService.loadUserSettings(userId);
-      state = AsyncValue.data(settings);
+      if (mounted) state = AsyncValue.data(settings);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> saveSettings(UserSettings settings) async {
-    state = const AsyncValue.loading();
+    if (mounted) state = const AsyncValue.loading();
     try {
       // Use authenticated user ID if available, otherwise use demo_user for testing
-      final userId = _user?.uid ?? 'demo_user';
+      final userId = _user?.id ?? 'demo_user';
       await _syncService.syncUserSettings(settings, userId);
-      state = AsyncValue.data(settings);
+      if (mounted) state = AsyncValue.data(settings);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (mounted) state = AsyncValue.error(e, st);
       rethrow; // Re-throw so the UI can show the error
     }
   }

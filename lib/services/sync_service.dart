@@ -1,13 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_settings.dart';
 import '../models/cycle_entry.dart';
 import '../models/predictions.dart';
+import '../supabase_config.dart';
 import 'hive_service.dart';
 
 class SyncService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Connectivity _connectivity = Connectivity();
 
   Future<bool> isOnline() async {
@@ -20,32 +19,48 @@ class SyncService {
   Future<void> syncUserSettings(UserSettings settings, String userId) async {
     // Save to Hive first (offline support)
     await HiveService.saveUserSettings(settings);
+    debugPrint('✅ User settings saved to Hive');
     
-    // Try to sync to Firestore if online
+    // Try to sync to Supabase if online
     if (await isOnline()) {
       try {
-        await _firestore
-            .collection('users')
-            .doc(userId)
-            .set(settings.toJson(), SetOptions(merge: true));
-      } catch (e) {
-        debugPrint('Failed to sync user settings to Firestore: $e');
+        final data = {
+          'user_id': userId,
+          ...settings.toJson(),
+          'updated_at': DateTime.now().toIso8601String(),
+        };
+        debugPrint('🔄 Syncing to Supabase: $data');
+        
+        await SupabaseConfig.client
+            .from('user_settings')
+            .upsert(data);
+        debugPrint('✅ User settings synced to Supabase');
+      } catch (e, stackTrace) {
+        debugPrint('❌ Failed to sync user settings to Supabase: $e');
+        debugPrint('Stack trace: $stackTrace');
       }
+    } else {
+      debugPrint('📴 Offline - saved to Hive only');
     }
   }
 
   Future<UserSettings?> loadUserSettings(String userId) async {
-    // Try to load from Firestore if online
+    // Try to load from Supabase if online
     if (await isOnline()) {
       try {
-        final doc = await _firestore.collection('users').doc(userId).get();
-        if (doc.exists && doc.data() != null) {
-          final settings = UserSettings.fromJson(doc.data()!);
+        final response = await SupabaseConfig.client
+            .from('user_settings')
+            .select()
+            .eq('user_id', userId)
+            .single();
+        
+        if (response != null) {
+          final settings = UserSettings.fromJson(response);
           await HiveService.saveUserSettings(settings);
           return settings;
         }
       } catch (e) {
-        debugPrint('Failed to load user settings from Firestore: $e');
+        debugPrint('Failed to load user settings from Supabase: $e');
       }
     }
     
@@ -57,35 +72,43 @@ class SyncService {
   Future<void> syncCycleEntry(CycleEntry cycle, String userId) async {
     // Save to Hive first
     await HiveService.saveCycle(cycle);
+    debugPrint('✅ Cycle saved to Hive: ${cycle.startDate}');
     
-    // Try to sync to Firestore if online
+    // Try to sync to Supabase if online
     if (await isOnline()) {
       try {
-        await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('cycles')
-            .doc(cycle.startDate.toIso8601String())
-            .set(cycle.toJson());
-      } catch (e) {
-        debugPrint('Failed to sync cycle to Firestore: $e');
+        final data = {
+          'user_id': userId,
+          ...cycle.toJson(),
+          'updated_at': DateTime.now().toIso8601String(),
+        };
+        debugPrint('🔄 Syncing cycle to Supabase: $data');
+        
+        await SupabaseConfig.client
+            .from('cycles')
+            .upsert(data);
+        debugPrint('✅ Cycle synced to Supabase');
+      } catch (e, stackTrace) {
+        debugPrint('❌ Failed to sync cycle to Supabase: $e');
+        debugPrint('Stack trace: $stackTrace');
       }
+    } else {
+      debugPrint('📴 Offline - cycle saved to Hive only');
     }
   }
 
   Future<List<CycleEntry>> loadCycles(String userId) async {
-    // Try to load from Firestore if online
+    // Try to load from Supabase if online
     if (await isOnline()) {
       try {
-        final snapshot = await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('cycles')
-            .orderBy('startDate', descending: true)
-            .get();
+        final response = await SupabaseConfig.client
+            .from('cycles')
+            .select()
+            .eq('user_id', userId)
+            .order('startDate', ascending: false);
         
-        final cycles = snapshot.docs
-            .map((doc) => CycleEntry.fromJson(doc.data()))
+        final cycles = (response as List)
+            .map((data) => CycleEntry.fromJson(data))
             .toList();
         
         // Update Hive cache
@@ -93,14 +116,18 @@ class SyncService {
           await HiveService.saveCycle(cycle);
         }
         
+        debugPrint('✅ Loaded ${cycles.length} cycles from Supabase');
         return cycles;
-      } catch (e) {
-        debugPrint('Failed to load cycles from Firestore: $e');
+      } catch (e, stackTrace) {
+        debugPrint('❌ Failed to load cycles from Supabase: $e');
+        debugPrint('Stack trace: $stackTrace');
       }
     }
     
     // Fallback to Hive
-    return HiveService.getAllCycles();
+    final cycles = HiveService.getAllCycles();
+    debugPrint('📴 Loaded ${cycles.length} cycles from Hive (offline)');
+    return cycles;
   }
 
   Future<void> deleteCycleEntry(DateTime startDate, String userId) async {
@@ -108,18 +135,20 @@ class SyncService {
     
     // Delete from Hive
     await HiveService.deleteCycle(key);
+    debugPrint('✅ Cycle deleted from Hive: $key');
     
-    // Try to delete from Firestore if online
+    // Try to delete from Supabase if online
     if (await isOnline()) {
       try {
-        await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('cycles')
-            .doc(key)
-            .delete();
-      } catch (e) {
-        debugPrint('Failed to delete cycle from Firestore: $e');
+        await SupabaseConfig.client
+            .from('cycles')
+            .delete()
+            .eq('user_id', userId)
+            .eq('startDate', key);
+        debugPrint('✅ Cycle deleted from Supabase');
+      } catch (e, stackTrace) {
+        debugPrint('❌ Failed to delete cycle from Supabase: $e');
+        debugPrint('Stack trace: $stackTrace');
       }
     }
   }
@@ -129,39 +158,39 @@ class SyncService {
     // Save to Hive first
     await HiveService.savePredictions(predictions);
     
-    // Try to sync to Firestore if online
+    // Try to sync to Supabase if online
     if (await isOnline()) {
       try {
-        await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('predictions')
-            .doc('current')
-            .set(predictions.toJson());
+        await SupabaseConfig.client
+            .from('predictions')
+            .upsert({
+              'user_id': userId,
+              ...predictions.toJson(),
+              'updated_at': DateTime.now().toIso8601String(),
+            });
       } catch (e) {
-        debugPrint('Failed to sync predictions to Firestore: $e');
+        debugPrint('Failed to sync predictions to Supabase: $e');
       }
     }
   }
 
   Future<Predictions?> loadPredictions(String userId) async {
-    // Try to load from Firestore if online
+    // Try to load from Supabase if online
     if (await isOnline()) {
       try {
-        final doc = await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('predictions')
-            .doc('current')
-            .get();
+        final response = await SupabaseConfig.client
+            .from('predictions')
+            .select()
+            .eq('user_id', userId)
+            .single();
         
-        if (doc.exists && doc.data() != null) {
-          final predictions = Predictions.fromJson(doc.data()!);
+        if (response != null) {
+          final predictions = Predictions.fromJson(response);
           await HiveService.savePredictions(predictions);
           return predictions;
         }
       } catch (e) {
-        debugPrint('Failed to load predictions from Firestore: $e');
+        debugPrint('Failed to load predictions from Supabase: $e');
       }
     }
     
