@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Period Tracker Delivery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #FF4081, #FF80AB);
+        }
+        .login-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-card h2 {
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .login-card p {
+            color: #888;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .error-msg {
+            color: #f64e60;
+            background: #ffe2e5;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+            font-weight: 500;
+        }
+        .form-group {
+            text-align: left;
+        }
+        .btn-block {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Admin Authentication</h2>
+        <p>Please log in to manage your delivery system</p>
+        
+        <div class="error-msg" id="login-error">Invalid username or password</div>
+
+        <div id="login-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required placeholder="Enter your username">
+            </div>
+            <div class="form-group" style="margin-top: 16px;">
+                <label for="password">Password</label>
+                <input type="password" id="password" required placeholder="Enter your password">
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="login-btn">Sign In</button>
+        </div>
+    </div>
+
+    <script src="js/login.js"></script>
+</body>
+</html>

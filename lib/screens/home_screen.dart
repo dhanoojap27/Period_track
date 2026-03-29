@@ -8,6 +8,7 @@ import '../providers/user_settings_provider.dart';
 import '../providers/cycle_provider.dart';
 import 'log_period_screen.dart';
 import 'chat_screen.dart';
+import 'delivery/delivery_home_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -483,6 +484,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ChatScreen()),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: _buildActionButton(
+            context,
+            'Delivery Store',
+            Icons.shopping_bag,
+            Colors.purple,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DeliveryHomeScreen()),
               );
             },
           ),

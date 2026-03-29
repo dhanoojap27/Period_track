@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/questionnaire_provider.dart';
 import 'questionnaire_screen.dart';
@@ -23,6 +24,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch $urlString')),
+        );
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -258,11 +270,75 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                     ),
+
+                    const SizedBox(height: 32),
+                    const Divider(color: Colors.white24),
+                    const SizedBox(height: 16),
+                    
+                    // Staff & Partner Portals
+                    const Text(
+                      'Staff & Partner Portals',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildPortalButton(
+                          icon: Icons.admin_panel_settings,
+                          label: 'Admin',
+                          onTap: () => _launchUrl('http://localhost:3000/admin'),
+                        ),
+                        const SizedBox(width: 16),
+                        _buildPortalButton(
+                          icon: Icons.delivery_dining,
+                          label: 'Partner',
+                          onTap: () => _launchUrl('http://localhost:3000/delivery'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPortalButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white12,
+          border: Border.all(color: Colors.white24),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

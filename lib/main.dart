@@ -13,6 +13,7 @@ import 'screens/insights_screen.dart';
 import 'screens/log_period_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/delivery/delivery_home_screen.dart';
 import 'supabase_config.dart';
 
 void main() async {
@@ -21,9 +22,11 @@ void main() async {
   // Initialize Hive
   await HiveService.init();
   
-  // Initialize Supabase
+  // Initialize Supabase FIRST before any other operations
   try {
     await SupabaseConfig.initialize();
+    debugPrint('✅ Supabase initialized successfully');
+    debugPrint('📡 Connected to: ${SupabaseConfig.supabaseUrl}');
     
     // Initialize Notifications (skip on web)
     if (!kIsWeb) {
@@ -33,9 +36,10 @@ void main() async {
     debugPrint('✅ App initialized successfully with Supabase');
   } catch (e) {
     debugPrint('❌ Supabase initialization failed: $e');
-    debugPrint('App will run in offline-only mode');
+    debugPrint('⚠️ App will run in offline-only mode');
   }
 
+  // Now that Supabase is initialized, we can safely run the app
   runApp(const ProviderScope(child: MyApp()));
   
   // Clear old predictions to force recalculation with new fields
@@ -56,6 +60,7 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'PeriodsTracker',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.pink),
         useMaterial3: true,
@@ -98,6 +103,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     LogPeriodScreen(),
     ChatScreen(),
     ProfileScreen(),
+    DeliveryHomeScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -143,6 +149,11 @@ class _MainScaffoldState extends State<MainScaffold> {
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Profile',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.shopping_bag_outlined),
+            selectedIcon: Icon(Icons.shopping_bag),
+            label: 'Delivery',
           ),
         ],
       ),

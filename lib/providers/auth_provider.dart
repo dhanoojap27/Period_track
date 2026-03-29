@@ -8,10 +8,24 @@ final authProvider = StateNotifierProvider<AuthNotifier, User?>((ref) {
 });
 
 class AuthNotifier extends StateNotifier<User?> {
-  AuthNotifier() : super(SupabaseConfig.auth.currentUser) {
-    SupabaseConfig.auth.onAuthStateChange.listen((data) {
-      state = data.session?.user;
-    });
+  AuthNotifier() : super(_getInitialUser()) {
+    // Only listen to auth state changes if Supabase is initialized
+    try {
+      SupabaseConfig.auth.onAuthStateChange.listen((data) {
+        state = data.session?.user;
+      });
+    } catch (e) {
+      debugPrint('⚠️ Could not set up auth listener: $e');
+    }
+  }
+  
+  static User? _getInitialUser() {
+    try {
+      return SupabaseConfig.auth.currentUser;
+    } catch (e) {
+      debugPrint('⚠️ Could not get current user: $e');
+      return null;
+    }
   }
 
   /// Clean and validate email address
@@ -35,9 +49,14 @@ class AuthNotifier extends StateNotifier<User?> {
     debugPrint('Sign In Attempt:');
     debugPrint('   Email: $cleanedEmail');
     debugPrint('   Email valid: ${_isValidEmail(cleanedEmail)}');
+    debugPrint('   Supabase initialized: ${SupabaseConfig.isInitialized}');
     
     if (!_isValidEmail(cleanedEmail)) {
       throw Exception('Invalid email format');
+    }
+    
+    if (!SupabaseConfig.isInitialized) {
+      throw Exception('Supabase is not initialized. Please wait for app to initialize.');
     }
     
     try {
@@ -60,6 +79,7 @@ class AuthNotifier extends StateNotifier<User?> {
     debugPrint('   Cleaned email: "$cleanedEmail"');
     debugPrint('   Email valid: ${_isValidEmail(cleanedEmail)}');
     debugPrint('   Password length: ${password.length}');
+    debugPrint('   Supabase initialized: ${SupabaseConfig.isInitialized}');
     
     if (!_isValidEmail(cleanedEmail)) {
       throw Exception('Invalid email format');
@@ -67,6 +87,10 @@ class AuthNotifier extends StateNotifier<User?> {
     
     if (password.length < 6) {
       throw Exception('Password must be at least 6 characters');
+    }
+    
+    if (!SupabaseConfig.isInitialized) {
+      throw Exception('Supabase is not initialized. Please wait for app to initialize.');
     }
     
     try {
